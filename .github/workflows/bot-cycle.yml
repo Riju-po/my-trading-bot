@@ -1,0 +1,57 @@
+name: Trading Bot Signal Cycle
+
+on:
+  schedule:
+    # Runs every 15 minutes.
+    # GitHub Actions cron schedules use UTC time.
+    # '*/15' means at minutes 0, 15, 30, 45 of every hour.
+    # For every 5 minutes: '*/5 * * * *' (use with caution for free tier limits)
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # Allows manual triggering from the Actions tab on GitHub
+
+jobs:
+  run-signal-cycle:
+    runs-on: ubuntu-latest # Use a Linux runner environment
+    timeout-minutes: 10 # Set a maximum time for the job to run (e.g., 10 minutes)
+                        # Your script should ideally finish much faster.
+
+    steps:
+      # Step 1: Check out your repository's code
+      # This makes your trading_bot.py, requirements.txt, .pth, and .pkl files available.
+      - name: Checkout repository code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Python environment
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9' # Or your preferred Python version (e.g., '3.10', '3.11')
+                                # Match the version you developed/tested with.
+          cache: 'pip' # Cache dependencies to speed up future runs
+
+      # Step 3: Install Python dependencies
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then 
+            pip install -r requirements.txt
+          else
+            echo "requirements.txt not found! Cannot install dependencies."
+            exit 1
+          fi
+
+      # Step 4: Run your Trading Bot Script
+      # Environment variables are passed to your script from GitHub Secrets
+      - name: Run Trading Bot Script
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # Optional: For PyTorch if it tries to download pre-trained models to a restricted path
+          # TORCH_HOME: ${{ github.workspace }}/.cache/torch 
+          # XDG_CACHE_HOME: ${{ github.workspace }}/.cache
+        run: python trading_bot.py # This executes your main script
+
+      # Step 5: Optional - Print completion status (runs even if previous steps fail)
+      - name: Print completion status
+        if: always() # This ensures the step runs regardless of previous failures
+        run: echo "Bot cycle execution attempt finished at $(date). Status: ${{ job.status }}"
