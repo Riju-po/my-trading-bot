@@ -1,0 +1,9 @@
+pandas
+numpy
+torch
+scikit-learn
+ta
+requests
+krakenex
+python-telegram-bot[httpx]
+# nest_asyncio # Only if you found it was absolutely necessary for your asyncio.run() in Colab. Usually not needed for standalone .py scripts.
